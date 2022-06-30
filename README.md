@@ -7,7 +7,7 @@ Harvest PE provides a datatype for the PE format[^1] that leverages Data.Binary[
 - Add features as needed once disassembly work has started.
 
 ### Tested on
-- Trojan[^3]
+- Emotet (Trojan)[^3]
 
 [li]: https://img.shields.io/badge/License-MIT-yellow.svg
 [ll]: https://opensource.org/licenses/MIT
