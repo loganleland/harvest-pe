@@ -27,7 +27,7 @@ data FileHeader = FileHeader
   , ptrSymTab :: Word32
   , numSyms :: Word32
   , sizeOptionalHeader :: Word16
-  , characteristics :: Word16
+  , characteristics :: Either Word16 Characteristics
   }
   deriving Show
 
@@ -47,7 +47,7 @@ harvestFileHeader a = G.runGet $ do
                     , ptrSymTab = ptrSymTab'
                     , numSyms = numSyms'
                     , sizeOptionalHeader = sizeOptionalHeader'
-                    , characteristics = characteristics'
+                    , characteristics = typedCharacteristics characteristics'
                     }
 
 data Machine = IMAGE_FILE_MACHINE_UNKNOWN | IMAGE_FILE_MACHINE_AM33 | 
@@ -64,6 +64,33 @@ data Machine = IMAGE_FILE_MACHINE_UNKNOWN | IMAGE_FILE_MACHINE_AM33 |
                IMAGE_FILE_MACHINE_SH3DSP | IMAGE_FILE_MACHINE_SH4 | 
                IMAGE_FILE_MACHINE_SH5 | IMAGE_FILE_MACHINE_THUMB
   deriving Show
+
+data Characteristics = IMAGE_FILE_RELOCS_STRIPPED | IMAGE_FILE_DLL |
+                       IMAGE_FILE_EXECUTABLE_IMAGE | IMAGE_FILE_LINE_NUMS_STRIPPED |
+                       IMAGE_FILE_LOCAL_SYMS_STRIPPED | IMAGE_FILE_AGGRESSIVE_WS_TRIM |
+                       IMAGE_FILE_LARGE_ADDRESS_AWARE | IMAGE_FILE_BYTES_REVERSED_LO |
+                       IMAGE_FILE_32BIT_MACHINE | IMAGE_FILE_DEBUG_STRIPPED |
+                       IMAGE_FILE_REMOVABLE_RUN_FROM_SWAP | IMAGE_FILE_NET_RUN_FROM_SWAP |
+                       IMAGE_FILE_UP_SYSTEM_ONLY | IMAGE_FILE_SYSTEM
+  deriving Show
+
+typedCharacteristics :: Word16 -> Either Word16 Characteristics
+typedCharacteristics a
+ | a == 1 = Right IMAGE_FILE_RELOCS_STRIPPED 
+ | a == 2 = Right IMAGE_FILE_EXECUTABLE_IMAGE 
+ | a == 4 = Right IMAGE_FILE_LINE_NUMS_STRIPPED 
+ | a == 8 = Right IMAGE_FILE_LOCAL_SYMS_STRIPPED 
+ | a == 16 = Right IMAGE_FILE_AGGRESSIVE_WS_TRIM 
+ | a == 32 = Right IMAGE_FILE_LARGE_ADDRESS_AWARE 
+ | a == 128 = Right IMAGE_FILE_BYTES_REVERSED_LO 
+ | a == 256 = Right IMAGE_FILE_32BIT_MACHINE 
+ | a == 512 = Right IMAGE_FILE_DEBUG_STRIPPED 
+ | a == 1024 = Right IMAGE_FILE_REMOVABLE_RUN_FROM_SWAP 
+ | a == 2048 = Right IMAGE_FILE_NET_RUN_FROM_SWAP 
+ | a == 4096 = Right IMAGE_FILE_SYSTEM 
+ | a == 8192 = Right IMAGE_FILE_DLL 
+ | a == 16384 = Right IMAGE_FILE_UP_SYSTEM_ONLY 
+ | otherwise = Left a
 
 typeMachine :: Word16 -> Either Word16 Machine
 typeMachine a
@@ -158,7 +185,7 @@ data OptHeader = OptHeader
   , sizeOfImage :: Word32
   , sizeOfHeaders :: Word32
   , checkSum :: Word32
-  , subsystem :: Word16
+  , subsystem :: Either Word16 Subsystem
   , dllCharacteristics :: Word16
   , sizeOfStackReserve :: Either Word32 Word64
   , sizeOfStackCommit :: Either Word32 Word64
@@ -228,7 +255,7 @@ harvestOptHeader a = G.runGet $ do
                        , sizeOfImage = sizeOfImage'
                        , sizeOfHeaders = sizeOfHeaders'
                        , checkSum = checkSum'
-                       , subsystem = subsystem'
+                       , subsystem = typedSubsystem subsystem'
                        , dllCharacteristics = dllCharacteristics'
                        , sizeOfStackReserve = Left sizeOfStackReserve'
                        , sizeOfStackCommit = Left sizeOfStackCommit'
@@ -268,7 +295,7 @@ harvestOptHeader a = G.runGet $ do
                          , sizeOfImage = sizeOfImage'
                          , sizeOfHeaders = sizeOfHeaders'
                          , checkSum = checkSum'
-                         , subsystem = subsystem'
+                         , subsystem = typedSubsystem subsystem'
                          , dllCharacteristics = dllCharacteristics'
                          , sizeOfStackReserve = Right sizeOfStackReserve'
                          , sizeOfStackCommit = Right sizeOfStackCommit'
@@ -280,6 +307,33 @@ harvestOptHeader a = G.runGet $ do
                          }
     other -> fail $ "Cannot derive 32-bit or 64-bit: " ++ show other
   return res
+
+typedSubsystem :: Word16 -> Either Word16 Subsystem
+typedSubsystem a
+ | a == 0 = Right IMAGE_SUBSYSTEM_UNKNOWN 
+ | a == 1 = Right IMAGE_SUBSYSTEM_NATIVE 
+ | a == 2 = Right IMAGE_SUBSYSTEM_WINDOWS_GUI 
+ | a == 3 = Right IMAGE_SUBSYSTEM_WINDOWS_CUI 
+ | a == 5 = Right IMAGE_SUBSYSTEM_OS2_CUI 
+ | a == 7 = Right IMAGE_SUBSYSTEM_POSIX_CUI 
+ | a == 8 = Right IMAGE_SUBSYSTEM_NATIVE_WINDOWS 
+ | a == 9 = Right IMAGE_SUBSYSTEM_WINDOWS_CE_GUI
+ | a == 10 = Right IMAGE_SUBSYSTEM_EFI_APPLICATION 
+ | a == 11 = Right IMAGE_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER 
+ | a == 12 = Right IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER 
+ | a == 13 = Right IMAGE_SUBSYSTEM_EFI_ROM 
+ | a == 14 = Right IMAGE_SUBSYSTEM_XBOX 
+ | a == 16 = Right IMAGE_SUBSYSTEM_WINDOWS_BOOT_APPLICATION
+ | otherwise = Left a
+
+data Subsystem =  IMAGE_SUBSYSTEM_UNKNOWN | IMAGE_SUBSYSTEM_NATIVE |
+                  IMAGE_SUBSYSTEM_WINDOWS_GUI | IMAGE_SUBSYSTEM_WINDOWS_CUI |
+                  IMAGE_SUBSYSTEM_OS2_CUI | IMAGE_SUBSYSTEM_POSIX_CUI |
+                  IMAGE_SUBSYSTEM_NATIVE_WINDOWS | IMAGE_SUBSYSTEM_WINDOWS_CE_GUI |
+                  IMAGE_SUBSYSTEM_EFI_APPLICATION | IMAGE_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER |
+                  IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER | IMAGE_SUBSYSTEM_EFI_ROM |
+                  IMAGE_SUBSYSTEM_XBOX | IMAGE_SUBSYSTEM_WINDOWS_BOOT_APPLICATION
+  deriving Show
 
 harvest :: Int -> BSL.ByteString -> NTHeader
 harvest a b = flip G.runGet b $ do
