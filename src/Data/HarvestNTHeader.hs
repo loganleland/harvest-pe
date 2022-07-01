@@ -21,7 +21,7 @@ import qualified Data.ByteString.Lazy as BSL
 import Control.Monad (replicateM)
 
 data FileHeader = FileHeader
-  { machine :: Word16
+  { machine :: Either Word16 Machine
   , numSection :: Word16
   , timestamp :: Word32
   , ptrSymTab :: Word32
@@ -41,7 +41,7 @@ harvestFileHeader a = G.runGet $ do
   numSyms' <- G.getWord32le
   sizeOptionalHeader' <- G.getWord16le
   characteristics' <- G.getWord16le
-  return FileHeader { machine = machine'
+  return FileHeader { machine = typeMachine machine'
                     , numSection = numSection'
                     , timestamp = timestamp'
                     , ptrSymTab = ptrSymTab'
@@ -49,6 +49,77 @@ harvestFileHeader a = G.runGet $ do
                     , sizeOptionalHeader = sizeOptionalHeader'
                     , characteristics = characteristics'
                     }
+
+data Machine = IMAGE_FILE_MACHINE_UNKNOWN | IMAGE_FILE_MACHINE_AM33 | 
+               IMAGE_FILE_MACHINE_AMD64 | IMAGE_FILE_MACHINE_ARM | 
+               IMAGE_FILE_MACHINE_ARM64 | IMAGE_FILE_MACHINE_ARMNT | 
+               IMAGE_FILE_MACHINE_EBC | IMAGE_FILE_MACHINE_I386 | 
+               IMAGE_FILE_MACHINE_IA64 | IMAGE_FILE_MACHINE_LOONGARCH32 | 
+               IMAGE_FILE_MACHINE_LOONGARCH64 | IMAGE_FILE_MACHINE_M32R | 
+               IMAGE_FILE_MACHINE_MIPS16 | IMAGE_FILE_MACHINE_MIPSFPU | 
+               IMAGE_FILE_MACHINE_MIPSFPU16 | IMAGE_FILE_MACHINE_POWERPC | 
+               IMAGE_FILE_MACHINE_POWERPCFP | IMAGE_FILE_MACHINE_R4000 | 
+               IMAGE_FILE_MACHINE_RISCV32 | IMAGE_FILE_MACHINE_RISCV64 | 
+               IMAGE_FILE_MACHINE_RISCV128 | IMAGE_FILE_MACHINE_SH3 | 
+               IMAGE_FILE_MACHINE_SH3DSP | IMAGE_FILE_MACHINE_SH4 | 
+               IMAGE_FILE_MACHINE_SH5 | IMAGE_FILE_MACHINE_THUMB
+  deriving Show
+
+typeMachine :: Word16 -> Either Word16 Machine
+typeMachine a
+  -- The content of this field is assumed to be applicable to any machine type 
+  | a == 0 = Right IMAGE_FILE_MACHINE_UNKNOWN
+  -- Matsushita AM33 
+  | a == 467 = Right IMAGE_FILE_MACHINE_AM33
+  -- x64 
+  | a == 34404 = Right IMAGE_FILE_MACHINE_AMD64
+  -- ARM little endian 
+  | a == 448 = Right IMAGE_FILE_MACHINE_ARM
+  -- ARM64 little endian 
+  | a == 43620 = Right IMAGE_FILE_MACHINE_ARM64
+  -- ARM Thumb-2 little endian 
+  | a == 452 = Right IMAGE_FILE_MACHINE_ARMNT
+  -- EFI byte code 
+  | a == 3772 = Right IMAGE_FILE_MACHINE_EBC
+  -- Intel 386 or later processors and compatible processors 
+  | a == 332 = Right IMAGE_FILE_MACHINE_I386
+  -- Intel Itanium processor family 
+  | a == 512 = Right IMAGE_FILE_MACHINE_IA64
+  -- LoongArch 32-bit processor family 
+  | a == 25138 = Right IMAGE_FILE_MACHINE_LOONGARCH32
+  -- LoongArch 64-bit processor family 
+  | a == 25188 = Right IMAGE_FILE_MACHINE_LOONGARCH64
+  -- Mitsubishi M32R little endian 
+  | a == 36929 = Right IMAGE_FILE_MACHINE_M32R
+  -- MIPS16 
+  | a == 614 = Right IMAGE_FILE_MACHINE_MIPS16
+  -- MIPS with FPU 
+  | a == 870 = Right IMAGE_FILE_MACHINE_MIPSFPU
+  -- MIPS16 with FPU 
+  | a == 1126 = Right IMAGE_FILE_MACHINE_MIPSFPU16
+  -- Power PC little endian 
+  | a == 496 = Right IMAGE_FILE_MACHINE_POWERPC
+  -- Power PC with floating point support 
+  | a == 497 = Right IMAGE_FILE_MACHINE_POWERPCFP
+  -- MIPS little endian 
+  | a == 358 = Right IMAGE_FILE_MACHINE_R4000
+  -- RISC-V 32-bit address space 
+  | a == 20530 = Right IMAGE_FILE_MACHINE_RISCV32
+  -- RISC-V 64-bit address space 
+  | a == 20580 = Right IMAGE_FILE_MACHINE_RISCV64
+  -- RISC-V 128-bit address space 
+  | a == 20776 = Right IMAGE_FILE_MACHINE_RISCV128
+  -- Hitachi SH3 
+  | a == 418 = Right IMAGE_FILE_MACHINE_SH3
+  -- Hitachi SH3 DSP 
+  | a == 419 = Right IMAGE_FILE_MACHINE_SH3DSP
+  -- Hitachi SH4 
+  | a == 422 = Right IMAGE_FILE_MACHINE_SH4
+  -- Hitachi SH5 
+  | a == 424 = Right IMAGE_FILE_MACHINE_SH5
+  -- Thumb 
+  | a == 450 = Right IMAGE_FILE_MACHINE_THUMB
+  | otherwise = Left a
 
 data DataDirectory = DataDirectory { virtualAddress :: Word32
                                    , size :: Word32
