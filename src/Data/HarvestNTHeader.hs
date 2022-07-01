@@ -186,7 +186,7 @@ data OptHeader = OptHeader
   , sizeOfHeaders :: Word32
   , checkSum :: Word32
   , subsystem :: Either Word16 Subsystem
-  , dllCharacteristics :: Word16
+  , dllCharacteristics :: Either Word16 DllCharacteristic
   , sizeOfStackReserve :: Either Word32 Word64
   , sizeOfStackCommit :: Either Word32 Word64
   , sizeOfHeapReserve :: Either Word32 Word64
@@ -195,6 +195,28 @@ data OptHeader = OptHeader
   , numberOfRvaAndSizes :: Word32
   , dataDirectory :: [DataDirectory]
   }
+  deriving Show
+
+typedDllCharacteristic :: Word16 -> Either Word16 DllCharacteristic
+typedDllCharacteristic a
+ | a == 32 = Right IMAGE_DLLCHARACTERISTICS_HIGH_ENTROPY_VA 
+ | a == 64 = Right IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE 
+ | a == 128 = Right IMAGE_DLLCHARACTERISTICS_FORCE_INTEGRITY 
+ | a == 256 = Right IMAGE_DLLCHARACTERISTICS_NX_COMPAT 
+ | a == 512 = Right IMAGE_DLLCHARACTERISTICS_NO_ISOLATION 
+ | a == 1024 = Right IMAGE_DLLCHARACTERISTICS_NO_SEH 
+ | a == 2048 = Right IMAGE_DLLCHARACTERISTICS_NO_BIND 
+ | a == 4096 = Right IMAGE_DLLCHARACTERISTICS_APPCONTAINER 
+ | a == 8192 = Right IMAGE_DLLCHARACTERISTICS_WDM_DRIVER 
+ | a == 16384 = Right IMAGE_DLLCHARACTERISTICS_GUARD_CF 
+ | otherwise = Left a
+
+data DllCharacteristic =  IMAGE_DLLCHARACTERISTICS_HIGH_ENTROPY_VA |
+                          IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE | IMAGE_DLLCHARACTERISTICS_FORCE_INTEGRITY |
+                          IMAGE_DLLCHARACTERISTICS_NX_COMPAT | IMAGE_DLLCHARACTERISTICS_NO_ISOLATION |
+                          IMAGE_DLLCHARACTERISTICS_NO_SEH | IMAGE_DLLCHARACTERISTICS_NO_BIND |
+                          IMAGE_DLLCHARACTERISTICS_APPCONTAINER | IMAGE_DLLCHARACTERISTICS_WDM_DRIVER |
+                          IMAGE_DLLCHARACTERISTICS_GUARD_CF
   deriving Show
 
 harvestOptHeader :: Int -> BSL.ByteString -> OptHeader
@@ -256,7 +278,7 @@ harvestOptHeader a = G.runGet $ do
                        , sizeOfHeaders = sizeOfHeaders'
                        , checkSum = checkSum'
                        , subsystem = typedSubsystem subsystem'
-                       , dllCharacteristics = dllCharacteristics'
+                       , dllCharacteristics = typedDllCharacteristic dllCharacteristics'
                        , sizeOfStackReserve = Left sizeOfStackReserve'
                        , sizeOfStackCommit = Left sizeOfStackCommit'
                        , sizeOfHeapReserve = Left sizeOfHeapReserve'
@@ -296,7 +318,7 @@ harvestOptHeader a = G.runGet $ do
                          , sizeOfHeaders = sizeOfHeaders'
                          , checkSum = checkSum'
                          , subsystem = typedSubsystem subsystem'
-                         , dllCharacteristics = dllCharacteristics'
+                         , dllCharacteristics = typedDllCharacteristic dllCharacteristics'
                          , sizeOfStackReserve = Right sizeOfStackReserve'
                          , sizeOfStackCommit = Right sizeOfStackCommit'
                          , sizeOfHeapReserve = Right sizeOfHeapReserve'
