@@ -15,11 +15,10 @@
 module Data.HarvestPE
   (
     PE,
-    harvest
+    harvest,
+    pprint
   ) where
 
-import Data.Word
-import qualified Data.Binary.Get as G
 import qualified Data.ByteString.Lazy as BSL
 import qualified Data.HarvestSection as S
 import qualified Data.HarvestNTHeader as NT
@@ -42,3 +41,7 @@ harvest a = do
      , ntHeader = ntHeader'
      , sections = sections'
      }
+
+pprint :: PE -> String
+pprint a = DOS.pprint (dHeader a) ++ "\n" ++
+           NT.pprint (ntHeader a) ++ "\n"

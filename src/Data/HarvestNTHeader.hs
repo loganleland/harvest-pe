@@ -50,6 +50,19 @@ harvestFileHeader a = G.runGet $ do
                     , characteristics = typedCharacteristics characteristics'
                     }
 
+pprintFHeader :: FileHeader -> String
+pprintFHeader a =
+  "======================\n" ++
+  "===== File Header ====\n" ++
+  "======================\n" ++
+  "Machine: " ++ show (machine a) ++ "\n" ++
+  "Number of Section: " ++ show (numSection a) ++ "\n" ++
+  "Timestamp: " ++ show (timestamp a) ++ "\n" ++
+  "COFF symbol table file offset: " ++  show (ptrSymTab a) ++ "\n" ++
+  "Number of entries in the symbol table: " ++ show (numSyms a) ++ "\n" ++
+  "Size of optional header: " ++ show (sizeOptionalHeader a) ++ "\n" ++
+  "Attributes: " ++ show (characteristics a) ++ "\n"
+
 data Machine = IMAGE_FILE_MACHINE_UNKNOWN | IMAGE_FILE_MACHINE_AM33 | 
                IMAGE_FILE_MACHINE_AMD64 | IMAGE_FILE_MACHINE_ARM | 
                IMAGE_FILE_MACHINE_ARM64 | IMAGE_FILE_MACHINE_ARMNT | 
@@ -368,10 +381,12 @@ harvest a b = flip G.runGet b $ do
                   , optHeader = oHeader'
                   }
 
-
 data NTHeader = NTHeader
   { signature :: Word32
   , fHeader :: FileHeader
   , optHeader :: OptHeader
   }
   deriving Show
+
+pprint :: NTHeader -> String
+pprint a = pprintFHeader $ fHeader a
